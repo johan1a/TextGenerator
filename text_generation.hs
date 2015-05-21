@@ -13,20 +13,18 @@ type WordFrequencyMap = Map String Integer
 type SuffixFrequencyMap = Map Bigram WordFrequencyMap
 
 main = do
-		wordList <- getWords "jeeves.txt"
-		let suffixMap = suffixFrequencies wordList
-		inputLoop suffixMap
-
+	wordList <- getWords "jeeves.txt"
+	inputLoop $ suffixFrequencies wordList
 
 inputLoop suffixMap = do
-						print("")
-						print("Enter number of words to generate: ")
-						wordCount <- readInt
-						if wordCount > 0 then do
-							text <- generateText suffixMap wordCount
-							print(text)
-							inputLoop suffixMap
-						else return()
+	print("")
+	print("Enter number of words to generate: ")
+	wordCount <- readInt
+	if wordCount > 0 then do
+		text <- generateText suffixMap wordCount
+		print(text)
+		inputLoop suffixMap
+	else return()
 
 readInt :: IO Int
 readInt = readLn
@@ -39,15 +37,37 @@ generateText suffixMap wordCount = do
 generateText_ :: SuffixFrequencyMap -> Int -> Bigram -> IO String
 generateText_ suffixMap 0 bigram = return("")
 generateText_ suffixMap wordsLeft bigram = do
-	nextWord <- randomSuffix (Map.findWithDefault Map.empty bigram suffixMap)
+	nextWord <- pickWeightedSuffix $ Map.findWithDefault Map.empty bigram suffixMap
 	text <- generateText_ suffixMap (wordsLeft - 1) (snd bigram, nextWord)
 	return $ fst bigram ++ " " ++ text
 	
+
+pickWeightedSuffix :: WordFrequencyMap -> IO String
+pickWeightedSuffix m = do
+	r <- randomWeight m	
+	pickWeighted_ (Map.toList m) 0 r
+
+pickWeighted_ :: [(String, Integer)] -> Integer -> Integer -> IO String
+pickWeighted_ (x:xs) inc r = do 
+	let weight =  snd x
+	if inc + weight > r then
+		return (fst x)
+  	else 
+   		(pickWeighted_ xs (inc + weight) r)
+
+randomWeight :: WordFrequencyMap -> IO Integer
+randomWeight m = do
+	g <- newStdGen	
+	return $ fst $ randomR (0, (sumWeights m) - 1) g
+
+sumWeights :: WordFrequencyMap -> Integer
+sumWeights m = sum (map snd (Map.toList m))
+
 randomBigram :: SuffixFrequencyMap -> IO Bigram
-randomBigram suffixFrequencyMap = pick (Map.keys suffixFrequencyMap)
+randomBigram suffixFrequencyMap = pick $ Map.keys suffixFrequencyMap
 
 randomSuffix :: WordFrequencyMap -> IO String
-randomSuffix wordFrequencies = pick (Map.keys wordFrequencies)
+randomSuffix wordFrequencies = pick $ Map.keys wordFrequencies
 
 mostProbableSuffix :: WordFrequencyMap -> String
 mostProbableSuffix wordFrequencies = keyWithMaxValFromMap wordFrequencies
@@ -55,7 +75,7 @@ mostProbableSuffix wordFrequencies = keyWithMaxValFromMap wordFrequencies
 getWords :: FilePath -> IO [String]
 getWords filePath = do 
 					contents <- readFile filePath
-					return (words contents)
+					return $ words contents
 
 suffixFrequencies :: [String] -> SuffixFrequencyMap
 suffixFrequencies xs = suffixFrequencies_ xs Map.empty
@@ -63,23 +83,22 @@ suffixFrequencies xs = suffixFrequencies_ xs Map.empty
 suffixFrequencies_ :: [String] -> SuffixFrequencyMap -> SuffixFrequencyMap
 suffixFrequencies_ [] m = m
 suffixFrequencies_ [a, b] m = m
-suffixFrequencies_ (x:xs) m = mergeSFM m (suffixFrequencies_ xs (singleSuffix (x:xs)))
+suffixFrequencies_ (x:xs) m = mergeSFM m $ suffixFrequencies_ xs $ singleSuffix (x:xs)
 
 singleSuffix :: [String] -> SuffixFrequencyMap
-singleSuffix xs = Map.fromList [((headTuple xs), makeWFM (xs !! 2))]
+singleSuffix xs = Map.fromList [(headTuple xs, makeWFM $ xs !! 2)]
 
 makeWFM :: String -> WordFrequencyMap
 makeWFM s = Map.fromList[(s, 1)]
 
 mergeSFM :: SuffixFrequencyMap -> SuffixFrequencyMap -> SuffixFrequencyMap
-mergeSFM a b = Map.unionWith mergeWFM a b
+mergeSFM = Map.unionWith mergeWFM
 
 mergeWFM :: WordFrequencyMap -> WordFrequencyMap -> WordFrequencyMap
-mergeWFM a b = Map.unionWith (+) a b
+mergeWFM = Map.unionWith (+) 
 
 headTuple :: [String] -> Bigram
 headTuple xs = (xs !! 0, xs !! 1) 
-
 
 
 pick :: [a] -> IO a
