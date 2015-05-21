@@ -26,7 +26,9 @@ inputLoop suffixMap = do
 						print(text)
 
 generateText :: SuffixFrequencyMap -> Int -> IO String
-generateText suffixMap wordCount = generateText_ suffixMap wordCount ("I", "have")
+generateText suffixMap wordCount = do
+	bigram <- randomBigram suffixMap
+	generateText_ suffixMap wordCount bigram
 
 generateText_ :: SuffixFrequencyMap -> Int -> Bigram -> IO String
 generateText_ suffixMap 0 bigram = return (fst bigram ++ snd bigram)
@@ -35,6 +37,8 @@ generateText_ suffixMap wordsLeft bigram = do
 	text <- generateText_ suffixMap (wordsLeft - 1) (snd bigram, nextWord)
 	return $ fst bigram ++ " " ++ text
 	
+randomBigram :: SuffixFrequencyMap -> IO Bigram
+randomBigram suffixFrequencyMap = pick (Map.keys suffixFrequencyMap)
 
 randomSuffix :: WordFrequencyMap -> IO String
 randomSuffix wordFrequencies = pick (Map.keys wordFrequencies)
