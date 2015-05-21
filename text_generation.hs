@@ -19,11 +19,17 @@ main = do
 
 
 inputLoop suffixMap = do
-						let wordCount = 40
-						--line <- getLine
-						--unless (wordCount == "q") $ do
-						text <- generateText suffixMap 40
-						print(text)
+						print("")
+						print("Enter number of words to generate: ")
+						wordCount <- readInt
+						if wordCount > 0 then do
+							text <- generateText suffixMap wordCount
+							print(text)
+							inputLoop suffixMap
+						else return()
+
+readInt :: IO Int
+readInt = readLn
 
 generateText :: SuffixFrequencyMap -> Int -> IO String
 generateText suffixMap wordCount = do
@@ -31,7 +37,7 @@ generateText suffixMap wordCount = do
 	generateText_ suffixMap wordCount bigram
 
 generateText_ :: SuffixFrequencyMap -> Int -> Bigram -> IO String
-generateText_ suffixMap 0 bigram = return (fst bigram ++ snd bigram)
+generateText_ suffixMap 0 bigram = return("")
 generateText_ suffixMap wordsLeft bigram = do
 	nextWord <- randomSuffix (Map.findWithDefault Map.empty bigram suffixMap)
 	text <- generateText_ suffixMap (wordsLeft - 1) (snd bigram, nextWord)
