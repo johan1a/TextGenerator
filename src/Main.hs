@@ -11,26 +11,28 @@ import           Data.ByteString.UTF8
 import           Control.Monad.IO.Class
 
 main :: IO ()
-main = quickHttpServe site
+main = do
+  print "Inside main"
+  suffixMap <- suffixFrequencies
+  quickHttpServe (site suffixMap)
 
-site :: Snap ()
-site =
-    ifTop (writeText1) <|>
+site :: SuffixFrequencyMap -> Snap ()
+site suffixMap =
+    ifTop (writeText1 suffixMap) <|>
     route [ ("foo", writeBS "bar")
           , ("echo/:echoparam", echoHandler)
           ] <|>
     dir "static" (serveDirectory ".")
 
 
-writeText1 :: Snap ()
-writeText1 = do
-  text <- liftIO $ getText
+writeText1 :: SuffixFrequencyMap -> Snap ()
+writeText1 suffixMap = do
+  text <- liftIO $ (getText suffixMap)
   writeBS text
   return ()
 
-getText :: IO ByteString
-getText = do
-  suffixMap <- suffixFrequencies
+getText :: SuffixFrequencyMap -> IO ByteString
+getText suffixMap = do
   text <- generateText suffixMap 300
   return $ Data.ByteString.UTF8.fromString text
 
