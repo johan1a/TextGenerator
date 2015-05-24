@@ -25,7 +25,8 @@ Executable TextGeneration
     containers,
     bytestring,
     utf8-string,
-    transformers
+    transformers,
+    directory
 
   if impl(ghc >= 6.12.0)
     ghc-options: -threaded -Wall -fwarn-tabs -funbox-strict-fields -O2

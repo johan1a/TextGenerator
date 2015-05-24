@@ -1,12 +1,15 @@
 module TextGeneration where
 
+import System.Directory
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Data.List 
 import qualified Data.List as List
 
 import System.Random
+
+type WordList = [String]
 
 type Bigram = (String, String)
 type Trigram = (String, String, String)
@@ -51,6 +54,7 @@ pickWeightedSuffix m = do
     pickWeighted_ (Map.toList m) 0 r
 
 pickWeighted_ :: [(String, Integer)] -> Integer -> Integer -> IO String
+pickWeighted_ [] _ _ = return("")
 pickWeighted_ (x:xs) inc r = do 
     let weight =  snd x
     if inc + weight > r 
@@ -76,18 +80,39 @@ randomSuffix wordFrequencies = pick $ Map.keys wordFrequencies
 mostProbableSuffix :: WordFrequencyMap -> String
 mostProbableSuffix wordFrequencies = keyWithMaxValFromMap wordFrequencies
 
-getWords :: FilePath -> IO [String]
+
+loadWordLists :: IO [WordList]
+loadWordLists =  do 
+  filePaths <- getFilePaths
+  sequence  $ map getWords $ filePaths
+
+
+getWords :: FilePath -> IO WordList
 getWords filePath = do 
-                    contents <- readFile filePath
+                    contents <- readFile ("input/" ++ filePath)
                     return $ words contents
 
-suffixFrequencies :: [String] -> SuffixFrequencyMap
-suffixFrequencies xs = suffixFrequencies_ xs Map.empty
+getFilePaths :: IO [FilePath]
+getFilePaths = do 
+        all_ <- getDirectoryContents "input"
+        return $ filterPaths all_
 
-suffixFrequencies_ :: [String] -> SuffixFrequencyMap -> SuffixFrequencyMap
-suffixFrequencies_ [] m = m
-suffixFrequencies_ [a, b] m = m
-suffixFrequencies_ (x:xs) m = mergeSFM m $ suffixFrequencies_ xs $ singleSuffix (x:xs)
+filterPaths :: [FilePath] -> [FilePath]
+filterPaths xs = do
+  filter (List.isSuffixOf ".txt") xs
+
+suffixFrequencies :: IO SuffixFrequencyMap
+suffixFrequencies =  do
+  wordLists <- loadWordLists
+  return $ (foldl1 mergeSFM) $ map (suffixFrequencies_ Map.empty) wordLists
+
+--suffixFrequencies :: [String] -> SuffixFrequencyMap
+--suffixFrequencies xs = suffixFrequencies_ xs Map.empty
+
+suffixFrequencies_ ::SuffixFrequencyMap ->  [String] -> SuffixFrequencyMap
+suffixFrequencies_ m [] = m
+suffixFrequencies_ m [a, b] = m
+suffixFrequencies_ m (x:xs) = mergeSFM m $ suffixFrequencies_ (singleSuffix (x:xs)) xs 
 
 singleSuffix :: [String] -> SuffixFrequencyMap
 singleSuffix xs = Map.fromList [(headTuple xs, makeWFM $ xs !! 2)]

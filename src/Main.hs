@@ -30,8 +30,7 @@ writeText1 = do
 
 getText :: IO ByteString
 getText = do
-  wordList <- getWords "jeeves.txt"
-  let suffixMap = suffixFrequencies wordList
+  suffixMap <- suffixFrequencies
   text <- generateText suffixMap 300
   return $ Data.ByteString.UTF8.fromString text
 
