@@ -1,3 +1,5 @@
+module TextGeneration where
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -12,53 +14,55 @@ type Trigram = (String, String, String)
 type WordFrequencyMap = Map String Integer
 type SuffixFrequencyMap = Map Bigram WordFrequencyMap
 
-main = do
-	wordList <- getWords "jeeves.txt"
-	inputLoop $ suffixFrequencies wordList
+--main = do
+--  wordList <- getWords "jeeves.txt"
+--  inputLoop $ suffixFrequencies wordList
 
 inputLoop suffixMap = do
-	print("")
-	print("Enter number of words to generate: ")
-	wordCount <- readInt
-	if wordCount > 0 then do
-		text <- generateText suffixMap wordCount
-		print(text)
-		inputLoop suffixMap
-	else return()
+    print("")
+    print("Enter number of words to generate: ")
+    wordCount <- readInt
+    if wordCount > 0 
+      then do
+       text <- generateText suffixMap wordCount
+       print text
+       inputLoop suffixMap
+      else return()
 
 readInt :: IO Int
 readInt = readLn
 
 generateText :: SuffixFrequencyMap -> Int -> IO String
 generateText suffixMap wordCount = do
-	bigram <- randomBigram suffixMap
-	generateText_ suffixMap wordCount bigram
+    bigram <- randomBigram suffixMap
+    generateText_ suffixMap wordCount bigram
 
 generateText_ :: SuffixFrequencyMap -> Int -> Bigram -> IO String
 generateText_ suffixMap 0 bigram = return("")
 generateText_ suffixMap wordsLeft bigram = do
-	nextWord <- pickWeightedSuffix $ Map.findWithDefault Map.empty bigram suffixMap
-	text <- generateText_ suffixMap (wordsLeft - 1) (snd bigram, nextWord)
-	return $ fst bigram ++ " " ++ text
-	
+    nextWord <- pickWeightedSuffix $ Map.findWithDefault Map.empty bigram suffixMap
+    text <- generateText_ suffixMap (wordsLeft - 1) (snd bigram, nextWord)
+    return $ fst bigram ++ " " ++ text
+    
 
 pickWeightedSuffix :: WordFrequencyMap -> IO String
 pickWeightedSuffix m = do
-	r <- randomWeight m	
-	pickWeighted_ (Map.toList m) 0 r
+    r <- randomWeight m 
+    pickWeighted_ (Map.toList m) 0 r
 
 pickWeighted_ :: [(String, Integer)] -> Integer -> Integer -> IO String
 pickWeighted_ (x:xs) inc r = do 
-	let weight =  snd x
-	if inc + weight > r then
-		return (fst x)
-  	else 
-   		(pickWeighted_ xs (inc + weight) r)
+    let weight =  snd x
+    if inc + weight > r 
+      then
+        return (fst x)
+      else 
+        (pickWeighted_ xs (inc + weight) r)
 
 randomWeight :: WordFrequencyMap -> IO Integer
 randomWeight m = do
-	g <- newStdGen	
-	return $ fst $ randomR (0, (sumWeights m) - 1) g
+    g <- newStdGen  
+    return $ fst $ randomR (0, (sumWeights m) - 1) g
 
 sumWeights :: WordFrequencyMap -> Integer
 sumWeights m = sum (map snd (Map.toList m))
@@ -74,8 +78,8 @@ mostProbableSuffix wordFrequencies = keyWithMaxValFromMap wordFrequencies
 
 getWords :: FilePath -> IO [String]
 getWords filePath = do 
-					contents <- readFile filePath
-					return $ words contents
+                    contents <- readFile filePath
+                    return $ words contents
 
 suffixFrequencies :: [String] -> SuffixFrequencyMap
 suffixFrequencies xs = suffixFrequencies_ xs Map.empty
