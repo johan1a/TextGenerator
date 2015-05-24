@@ -1,10 +1,9 @@
 module TextGeneration where
 
 import System.Directory
-
+import Data.Char
 import Data.Map (Map)
 import qualified Data.Map as Map
-
 import qualified Data.List as List
 
 import System.Random
@@ -72,7 +71,14 @@ sumWeights :: WordFrequencyMap -> Integer
 sumWeights m = sum (map snd (Map.toList m))
 
 randomBigram :: SuffixFrequencyMap -> IO Bigram
-randomBigram suffixFrequencyMap = pick $ Map.keys suffixFrequencyMap
+randomBigram suffixFrequencyMap = do
+    bigram <- pick $ Map.keys suffixFrequencyMap
+    if (isUpper $ (!! 0) $ fst bigram) 
+        then
+          return(bigram)
+        else
+          randomBigram suffixFrequencyMap
+  
 
 randomSuffix :: WordFrequencyMap -> IO String
 randomSuffix wordFrequencies = pick $ Map.keys wordFrequencies
